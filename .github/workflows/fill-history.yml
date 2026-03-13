@@ -1,9 +1,8 @@
 name: Fill History (Daily Auto + Manual Batch)
 
-on:
+于:
   schedule:
-    # 每天 UTC 20:00 运行（北京时间次日 4:00）
-    - cron: '0 20 * * *'
+    - cron: '0 20 * * *'          # 每天 UTC 20:00（北京时间 4:00）
   workflow_dispatch:
     inputs:
       start_date:
@@ -29,12 +28,47 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config --global user.email "oxxxxlin@gmail.com"
-          git config --global user.name "oxxxxlin"
+          git config --global user.email "miankexingkong@gmail.com"      # 替换为你的 GitHub 验证邮箱
+          git config --global user.name "xiaodjj"     # 替换为你的 GitHub 用户名
 
       - name: Generate commits
         env:
           START_DATE: ${{ github.event.inputs.start_date }}
+          END_DATE: ${{ github.event.inputs.end_date }}
+          DAILY_COMMITS: ${{ github.event.inputs.daily_commits }}
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            # 定时触发：生成今天提交
+            TODAY=$(date +%Y-%m-%d)
+            COMMITS_PER_DAY=12
+            echo "Daily run: generating $COMMITS_PER_DAY commits for $TODAY"
+            for i in $(seq 1 $COMMITS_PER_DAY); do
+              git commit --allow-empty -m "daily fill #$i on $TODAY"
+            done
+          else
+            # 手动触发：生成历史提交
+            if [ -z "$END_DATE" ]; then
+              END_DATE=$(date +%Y-%m-%d)
+            fi
+            current_date="$START_DATE"
+            while [ "$current_date" != "$END_DATE" ]; do
+              echo "Generating $DAILY_COMMITS commits for $current_date"
+              for i in $(seq 1 $DAILY_COMMITS); do
+                export GIT_AUTHOR_DATE="$current_date 12:00:00"
+                export GIT_COMMITTER_DATE="$current_date 12:00:00"
+                git commit --allow-empty -m "chore: sync #$i on $current_date"
+              done
+              current_date=$(date -d "$current_date + 1 day" +%Y-%m-%d)
+            done
+          fi
+
+      - name: Push commits
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            git push origin HEAD          # 定时任务：普通推送
+          else
+            git push --force origin HEAD  # 手动任务：强制推送（覆盖历史）
+          fi          START_DATE: ${{ github.event.inputs.start_date }}
           END_DATE: ${{ github.event.inputs.end_date }}
           DAILY_COMMITS: ${{ github.event.inputs.daily_commits }}
         run: |
