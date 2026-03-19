@@ -38,7 +38,7 @@
 
 · 点击右上角 + → New repository
 · 输入仓库名称（例如 green-contributions）
-· 选择 Private 或 Public（推荐 Private，贡献仍会显示）
+· 选择 Public
 · 勾选 Add a README file（可选）
 · 点击 Create repository
 
